@@ -12,9 +12,19 @@ const jwtSecret = process.env.JWT_SECRET || 'dev_secret_change_me'
 init()
 seed()
 
+const allowOrigin = (origin) => {
+  if (!origin) return true
+  if (origin.startsWith('http://localhost:')) return true
+  if (origin.startsWith('http://127.0.0.1:')) return true
+  return origin === process.env.CORS_ORIGIN
+}
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (allowOrigin(origin)) return callback(null, true)
+      return callback(new Error('Not allowed by CORS'))
+    },
   })
 )
 app.use(express.json())
