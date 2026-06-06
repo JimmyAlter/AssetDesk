@@ -8,10 +8,14 @@ import Users from './components/Users'
 import Modal from './components/Modal'
 import { navItems } from './components/Sidebar'
 import { PlusIcon } from './components/Icons'
+import { isDemoMode, mockFetchJson } from './mockApi'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
 const fetchJson = async (path, options = {}) => {
+  if (isDemoMode()) {
+    return mockFetchJson(path, options)
+  }
   const response = await fetch(`${API_URL}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
@@ -129,6 +133,17 @@ function App() {
             </button>
           </div>
         </header>
+
+        {isDemoMode() && (
+          <div className="banner banner--info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: '#3b82f6', borderRadius: '6px', marginBottom: '16px' }}>
+            <span style={{ fontSize: '14px' }}>
+              🌐 <strong>Demo Mode:</strong> Running entirely client-side using LocalStorage database. Any additions/modifications will persist locally in your browser.
+            </span>
+            <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#3b82f6' }} onClick={() => { localStorage.clear(); window.location.reload(); }}>
+              Reset Data
+            </button>
+          </div>
+        )}
 
         {error && <div className="banner banner--error">{error}</div>}
 
