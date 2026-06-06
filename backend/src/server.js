@@ -1,6 +1,8 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
+const helmet = require('helmet')
+const rateLimit = require('express-rate-limit')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 const { db, init, seed } = require('./db')
@@ -11,6 +13,8 @@ const jwtSecret = process.env.JWT_SECRET || 'dev_secret_change_me'
 
 init()
 seed()
+
+app.use(helmet())
 
 const allowOrigin = (origin) => {
   if (!origin) return true
@@ -27,7 +31,14 @@ app.use(
     },
   })
 )
-app.use(express.json())
+app.use(express.json({ limit: '200kb' }))
+
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
 const authenticate = (req, res, next) => {
   const header = req.headers.authorization || ''
@@ -45,7 +56,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' })
 })
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', authLimiter, (req, res) => {
   const { email, password } = req.body || {}
   if (!email || !password) return res.status(400).json({ error: 'Missing credentials' })
 
