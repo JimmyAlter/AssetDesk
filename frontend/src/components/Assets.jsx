@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import Badge from './ui/Badge'
 import EmptyState from './ui/EmptyState'
 import { SkeletonRow } from './ui/Skeleton'
@@ -24,7 +24,6 @@ const Assets = ({ assets, loading }) => {
     })
   }, [assets, query, status])
 
-  useEffect(() => setPage(1), [query, status])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -49,10 +48,10 @@ const Assets = ({ assets, loading }) => {
           <input
             placeholder="Search assets or locations…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(1) }}
           />
         </div>
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
+        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }}>
           <option value="all">All status</option>
           <option value="healthy">Healthy</option>
           <option value="warning">Warning</option>
@@ -65,7 +64,7 @@ const Assets = ({ assets, loading }) => {
           {activeFilters.map((f) => (
             <span key={f} className="chip">{f}</span>
           ))}
-          <button className="btn btn--ghost btn--sm" onClick={() => { setQuery(''); setStatus('all') }}>
+          <button className="btn btn--ghost btn--sm" onClick={() => { setQuery(''); setStatus('all'); setPage(1) }}>
             Clear all
           </button>
         </div>

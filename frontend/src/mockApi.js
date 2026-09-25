@@ -63,7 +63,7 @@ export const mockFetchJson = async (path, options = {}) => {
     const token = authHeader.substring(7)
     try {
       currentUser = JSON.parse(atob(token))
-    } catch (e) {
+    } catch {
       // invalid token format
       throw new Error('Unauthorized')
     }
@@ -152,7 +152,11 @@ export const mockFetchJson = async (path, options = {}) => {
   if (path === '/api/users' && (!options.method || options.method === 'GET')) {
     const users = getStorage('assetdesk_users', seedUsers)
     // Map to remove passwords
-    return users.map(({ password, ...u }) => u)
+    return users.map((user) => {
+      const publicUser = { ...user }
+      delete publicUser.password
+      return publicUser
+    })
   }
 
   throw new Error(`Endpoint not mocked: ${path}`)
