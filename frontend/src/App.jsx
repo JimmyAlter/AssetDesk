@@ -6,7 +6,7 @@ import Tickets from './components/Tickets'
 import Assets from './components/Assets'
 import Users from './components/Users'
 import Modal from './components/Modal'
-import { navItems } from './components/Sidebar'
+import { navItems } from './components/navItems'
 import { PlusIcon } from './components/Icons'
 import { isDemoMode, mockFetchJson } from './mockApi'
 
@@ -75,7 +75,7 @@ function App() {
       })
       localStorage.setItem('assetdesk-token', data.token)
       setToken(data.token)
-    } catch (err) {
+    } catch {
       setError('Invalid credentials. Try the demo access.')
     } finally {
       setLoading(false)
@@ -99,7 +99,7 @@ function App() {
       setTickets((prev) => [data, ...prev])
       setNewTicket({ title: '', priority: 'medium', description: '' })
       setFormOpen(false)
-    } catch (err) {
+    } catch {
       setError('Unable to create ticket right now.')
     } finally {
       setLoading(false)

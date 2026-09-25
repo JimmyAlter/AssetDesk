@@ -1,12 +1,6 @@
 import { useMemo } from 'react'
-import { DashboardIcon, TicketIcon, ServerIcon, UsersIcon, LogoutIcon, LogoIcon } from './Icons'
-
-const navItems = [
-  { id: 'dashboard', label: 'Overview', icon: DashboardIcon },
-  { id: 'tickets', label: 'Tickets', icon: TicketIcon },
-  { id: 'assets', label: 'Assets', icon: ServerIcon },
-  { id: 'users', label: 'Workforce', icon: UsersIcon },
-]
+import { LogoutIcon, LogoIcon } from './Icons'
+import { navItems } from './navItems'
 
 const Sidebar = ({ view, onNavigate, onLogout }) => {
   const items = useMemo(() => navItems, [])
@@ -57,5 +51,4 @@ const Sidebar = ({ view, onNavigate, onLogout }) => {
   )
 }
 
-export { navItems }
 export default Sidebar

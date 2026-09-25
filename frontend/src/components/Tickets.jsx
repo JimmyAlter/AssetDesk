@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import Badge from './ui/Badge'
 import EmptyState from './ui/EmptyState'
 import { SkeletonRow } from './ui/Skeleton'
@@ -23,7 +23,6 @@ const Tickets = ({ tickets, loading, onNewTicket }) => {
     })
   }, [tickets, query, status, priority])
 
-  useEffect(() => setPage(1), [query, status, priority])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -50,15 +49,15 @@ const Tickets = ({ tickets, loading, onNewTicket }) => {
           <input
             placeholder="Search tickets…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(1) }}
           />
         </div>
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
+        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }}>
           <option value="all">All status</option>
           <option value="open">Open</option>
           <option value="resolved">Resolved</option>
         </select>
-        <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+        <select value={priority} onChange={(e) => { setPriority(e.target.value); setPage(1) }}>
           <option value="all">All priorities</option>
           <option value="high">High</option>
           <option value="medium">Medium</option>
@@ -71,7 +70,7 @@ const Tickets = ({ tickets, loading, onNewTicket }) => {
           {activeFilters.map((f) => (
             <span key={f} className="chip">{f}</span>
           ))}
-          <button className="btn btn--ghost btn--sm" onClick={() => { setQuery(''); setStatus('all'); setPriority('all') }}>
+          <button className="btn btn--ghost btn--sm" onClick={() => { setQuery(''); setStatus('all'); setPriority('all'); setPage(1) }}>
             Clear all
           </button>
         </div>

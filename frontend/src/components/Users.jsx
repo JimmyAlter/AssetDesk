@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import EmptyState from './ui/EmptyState'
 import { SkeletonRow } from './ui/Skeleton'
 import Pagination from './ui/Pagination'
@@ -20,7 +20,6 @@ const Users = ({ users, loading }) => {
     })
   }, [users, query, role])
 
-  useEffect(() => setPage(1), [query, role])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -45,10 +44,10 @@ const Users = ({ users, loading }) => {
           <input
             placeholder="Search people…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(1) }}
           />
         </div>
-        <select value={role} onChange={(e) => setRole(e.target.value)}>
+        <select value={role} onChange={(e) => { setRole(e.target.value); setPage(1) }}>
           <option value="all">All roles</option>
           <option value="Admin">Admin</option>
           <option value="Support Lead">Support Lead</option>
@@ -61,7 +60,7 @@ const Users = ({ users, loading }) => {
           {activeFilters.map((f) => (
             <span key={f} className="chip">{f}</span>
           ))}
-          <button className="btn btn--ghost btn--sm" onClick={() => { setQuery(''); setRole('all') }}>
+          <button className="btn btn--ghost btn--sm" onClick={() => { setQuery(''); setRole('all'); setPage(1) }}>
             Clear all
           </button>
         </div>
