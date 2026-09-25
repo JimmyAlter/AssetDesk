@@ -108,9 +108,24 @@ app.get('/api/tickets', authenticate, (req, res) => {
   res.json(tickets)
 })
 
+const TICKET_PRIORITIES = ['low', 'medium', 'high']
+const MAX_TITLE_LENGTH = 200
+const MAX_DESCRIPTION_LENGTH = 5000
+
 app.post('/api/tickets', authenticate, (req, res) => {
-  const { title, priority, description } = req.body || {}
-  if (!title) return res.status(400).json({ error: 'Title is required' })
+  const { title, priority = 'medium', description = '' } = req.body || {}
+  if (typeof title !== 'string' || !title.trim()) {
+    return res.status(400).json({ error: 'Title is required' })
+  }
+  if (title.length > MAX_TITLE_LENGTH) {
+    return res.status(400).json({ error: `Title must be at most ${MAX_TITLE_LENGTH} characters` })
+  }
+  if (!TICKET_PRIORITIES.includes(priority)) {
+    return res.status(400).json({ error: `Priority must be one of: ${TICKET_PRIORITIES.join(', ')}` })
+  }
+  if (typeof description !== 'string' || description.length > MAX_DESCRIPTION_LENGTH) {
+    return res.status(400).json({ error: `Description must be text of at most ${MAX_DESCRIPTION_LENGTH} characters` })
+  }
 
   const stmt = db.prepare(
     `INSERT INTO tickets (title, status, priority, requester, assignee, asset_id, description, created_at, updated_at)
@@ -118,13 +133,13 @@ app.post('/api/tickets', authenticate, (req, res) => {
   )
 
   const info = stmt.run(
-    title,
+    title.trim(),
     'open',
-    priority || 'medium',
+    priority,
     req.user.name || 'Operator',
     'Unassigned',
     null,
-    description || ''
+    description
   )
 
   const ticket = db.prepare('SELECT * FROM tickets WHERE id = ?').get(info.lastInsertRowid)
@@ -145,6 +160,10 @@ app.get('/api/users', authenticate, (req, res) => {
   res.json(users)
 })
 
-app.listen(port, () => {
-  console.log(`AssetDesk API running on http://localhost:${port}`)
-})
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`AssetDesk API running on http://localhost:${port}`)
+  })
+}
+
+module.exports = app
