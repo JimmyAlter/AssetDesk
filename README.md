@@ -1,95 +1,83 @@
 # AssetDesk
 
-AssetDesk is an enterprise-grade service desk and asset inventory platform. It consolidates ticket operations, device health, and field workflows into a unified workspace built for IT organizations.
+[![CI](https://github.com/JimmyAlter/AssetDesk/actions/workflows/ci.yml/badge.svg)](https://github.com/JimmyAlter/AssetDesk/actions/workflows/ci.yml)
 
-## Capabilities
-- Role-based access with JWT authentication
-- Ticket workflows with priority, status, and ownership
-- Asset inventory with health states, locations, and assignment
-- People directory for service desk and field teams
-- Operational dashboard with executive summary metrics
+A small IT service desk and asset inventory: ticket intake, an asset list with health states, a people directory and a summary dashboard, over a JWT-authenticated Express API.
 
-## Technology
-- Frontend: React + Vite
-- Backend: Node.js + Express
-- Database: SQLite (swap-in ready for PostgreSQL)
-- Authentication: JWT
+**Live demo:** [assetdesk-demo.vercel.app](https://assetdesk-demo.vercel.app). Sign in with `demo@assetdesk.dev` / `demo123`. The API runs on Render's free tier, so the first request after a while idle can take up to a minute.
 
-## Architecture
+| Overview | Workforce |
+|---|---|
+| ![Overview](docs/screenshots/overview.png) | ![Workforce](docs/screenshots/workforce.png) |
+
+## Scope
+
+This is a deliberately small build that shares its foundation with [CommerceSuite](https://github.com/JimmyAlter/CommerceSuite).
+
+**What it does**
+
+- Email and password login (bcrypt hashes, 8-hour JWT, rate-limited login)
+- Create tickets with a title, priority (low, medium or high) and description. The requester is taken from the token, and the input is validated on the server
+- List tickets, assets and people, with search, filters and pagination in the UI
+- Dashboard counts: assets, open tickets, tickets resolved in the last 7 days, and open high-priority tickets
+
+**What it does not do (yet)**
+
+- Role-based authorization. Users have a role, but the API does not check it; every authenticated user can read everything
+- Ticket assignment and status transitions. New tickets are always `open` and `Unassigned`, and there are no update endpoints
+- Status history or audit trail
+
+## Stack
+
+React 19 and Vite (frontend) · Node.js, Express and better-sqlite3 (API) · JWT auth · helmet and express-rate-limit
+
+```text
+React (Vercel) ──► Express API (Render) ──► SQLite
 ```
-React UI -> Express API -> SQLite
-```
 
-## Screens
-![Dashboard](frontend/public/screens/dashboard.svg)
-![Tickets](frontend/public/screens/tickets.svg)
+The frontend also has a browser-only mock API (`frontend/src/mockApi.js`). It is used when `VITE_API_URL` is not set and the app runs on `*.vercel.app` or with `VITE_DEMO_MODE=true`. A badge in the top bar shows which mode is active.
 
-## Local Setup
+## Running it locally
 
-### Backend
-```
+```bash
 cd backend
-npm install
 cp .env.example .env
-npm run seed
-npm run dev
+npm ci
+npm start            # http://localhost:4000, creates and seeds the database on first run
+
+cd ../frontend
+npm ci
+npm run dev          # http://localhost:5173
 ```
 
-API: `http://localhost:4000`
+## Tests
 
-### Frontend
-```
-cd frontend
-npm install
-npm run dev
+```bash
+cd backend && npm test
 ```
 
-Frontend: `http://localhost:5173`
+The node:test suite starts the API against a fresh SQLite file and checks the following:
 
-### Demo Access
-- Email: `demo@assetdesk.dev`
-- Password: `demo123`
+- every data route requires a valid token
+- login errors don't reveal whether the email exists
+- password hashes never appear in a response
+- the requester is taken from the token
+- ticket input is validated on the server
+- SQL-looking input is stored as plain text
 
-## Notes
-- Update `CORS_ORIGIN` in `backend/.env` if the frontend URL changes.
-- To use PostgreSQL, replace the SQLite layer in `backend/src/db.js` with a Postgres client.
+CI runs these tests on Node 20 and 22, plus the frontend lint and build.
 
----
+## Security notes
 
-## 🛡️ Security & Architecture Model
+- All queries are prepared statements with `?` placeholders; no SQL is built from strings.
+- `helmet` sets the default security headers. JSON bodies are capped at 200 KB, and login is limited to 20 attempts per minute.
+- With `NODE_ENV=production`, the server exits at startup if `JWT_SECRET` is missing or still the development default.
+- CORS allows `CORS_ORIGIN` and localhost origins.
 
-In accordance with community security code review, the platform is designed with the following security boundaries:
+## Deployment
 
-1.  **SQL Injection Mitigation (100% Parameterized Queries):** 
-    All SQLite read/write operations (e.g. users query, tickets insertion, and updates) are constructed using parameterized prepared statements via the SQLite engine (`db.prepare(...)` with placeholder `?`). Raw input string concatenation is never used, completely neutralizing SQL injection vectors.
-2.  **API Rate Limiting & Hardening:**
-    The login endpoint (`/api/auth/login`) is gated by rate-limiting middleware (`express-rate-limit`) to prevent automated dictionary attacks. The backend uses `helmet` headers for basic security sanitization (CSP, clickjacking prevention, X-Content-Type-Options) and restricts JSON payloads to `200kb`.
-3.  **Authentication & JWT Security:**
-    In production mode, the server performs a startup validation. If `JWT_SECRET` is missing or set to the default developer string, the process immediately crashes to prevent insecure deployment.
+`render.yaml` defines the API service and `DB_PATH`. The frontend is a static Vite build on Vercel with `VITE_API_URL` pointing at the API. SQLite fits a single small instance like this demo. For anything with real traffic or more than one instance, move to PostgreSQL. The data layer lives in `backend/src/db.js`.
 
----
+## License
 
-## 🌐 Deployment & Persistence Model (SQLite Free-Tier Warning)
-
-By default, this project deploys SQLite on Render's free tier:
-*   **Ephemeral Filesystem:** Because free Render instances lack persistent disk volume attachments, the SQLite database (`.db`) is stored in the writable ephemeral container space.
-*   **Safety Recycle:** Whenever the dyno goes to sleep due to inactivity or recycles during deployments, the database resets to its default seeded state. For public showcase demos, this acts as a natural security feature, clearing user-submitted spam.
-*   **Production Upgrade:** For a production-ready deployment, it is highly recommended to provision PostgreSQL on Render (which is natively supported by swap-in client layers in `db.js`) or use a remote DB provider (like Neon, Turso/LibSQL, or Supabase).
-
----
-
-## ⚙️ Environment Variables
-
-### Backend Configuration (`/backend/.env`)
-| Variable | Description | Default / Example | Required |
-|---|---|---|---|
-| `PORT` | Port for Express API | `4000` | No |
-| `JWT_SECRET` | 256-bit cryptographically secure signature secret | `your_secure_jwt_secret_here` | **Yes (Prod)** |
-| `CORS_ORIGIN` | Allowed origin for incoming requests | `https://assetdesk-demo.vercel.app` | Yes |
-
-### Frontend Configuration (`/frontend/.env`)
-| Variable | Description | Default / Example | Required |
-|---|---|---|---|
-| `VITE_API_URL` | Live Render backend endpoint | `https://assetdesk-backend.onrender.com` | No (falls back to local mock storage) |
-| `VITE_DEMO_MODE` | Force UI to run in local mock database mode | `true` | No |
-
+MIT. See [LICENSE](LICENSE).
