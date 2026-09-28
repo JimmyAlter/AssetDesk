@@ -1,14 +1,14 @@
+# Render free web services have no persistent disk. The SQLite file lives on
+# the instance's ephemeral filesystem and is recreated and seeded with the demo
+# data on every deploy or restart (including after the service sleeps).
 services:
   - type: web
     name: assetdesk-backend
-    env: node
+    runtime: node
     plan: free
-    buildCommand: npm install --prefix backend
+    buildCommand: npm ci --prefix backend
     startCommand: node backend/src/server.js
-    disk:
-      name: assetdesk-db
-      mountPath: /opt/data
-      sizeGB: 1
+    healthCheckPath: /api/health
     envVars:
       - key: PORT
         value: 10000
@@ -16,7 +16,8 @@ services:
         value: production
       - key: JWT_SECRET
         generateValue: true
-      - key: DB_PATH
-        value: /opt/data/assetdesk.db
+      # Render puts one proxy in front of the service.
+      - key: TRUST_PROXY
+        value: 1
       - key: CORS_ORIGIN
         value: https://assetdesk-demo.vercel.app

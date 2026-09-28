@@ -2,6 +2,14 @@
   "name": "assetdesk-backend",
   "version": "0.1.0",
   "private": true,
+  "description": "Express and SQLite API for AssetDesk: JWT auth, role-based access, tickets, assets and people",
+  "license": "MIT",
+  "author": "Thiago Langone",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JimmyAlter/AssetDesk.git",
+    "directory": "backend"
+  },
   "main": "src/server.js",
   "scripts": {
     "dev": "node src/server.js",
@@ -21,7 +29,5 @@
   },
   "engines": {
     "node": ">=20"
-  },
-  "license": "MIT",
-  "author": "Thiago Langone"
+  }
 }
