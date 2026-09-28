@@ -4,10 +4,12 @@ import EmptyState from './ui/EmptyState'
 import { SkeletonRow } from './ui/Skeleton'
 import Pagination from './ui/Pagination'
 import { SearchIcon } from './Icons'
+import { formatDateTime } from '../format'
+import { STATUS_LABELS, STATUS_TONES, PRIORITY_TONES } from '../permissions'
 
 const PAGE_SIZE = 8
 
-const Tickets = ({ tickets, loading, onNewTicket }) => {
+const Tickets = ({ tickets, loading, onNewTicket, onSelectTicket }) => {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [priority, setPriority] = useState('all')
@@ -16,7 +18,10 @@ const Tickets = ({ tickets, loading, onNewTicket }) => {
   const filtered = useMemo(() => {
     return tickets.filter((t) => {
       const q = query.toLowerCase()
-      const matchesQuery = t.title.toLowerCase().includes(q) || t.requester.toLowerCase().includes(q)
+      const matchesQuery =
+        t.title.toLowerCase().includes(q) ||
+        t.requester.toLowerCase().includes(q) ||
+        (t.assignee || '').toLowerCase().includes(q)
       const matchesStatus = status === 'all' || t.status === status
       const matchesPriority = priority === 'all' || t.priority === priority
       return matchesQuery && matchesStatus && matchesPriority
@@ -29,7 +34,7 @@ const Tickets = ({ tickets, loading, onNewTicket }) => {
 
   const activeFilters = [
     query && `Search: ${query}`,
-    status !== 'all' && `Status: ${status}`,
+    status !== 'all' && `Status: ${STATUS_LABELS[status]}`,
     priority !== 'all' && `Priority: ${priority}`,
   ].filter(Boolean)
 
@@ -38,7 +43,7 @@ const Tickets = ({ tickets, loading, onNewTicket }) => {
       <div className="card__header">
         <div>
           <h3>Service requests</h3>
-          <p>Track incidents, access requests, and change tasks</p>
+          <p>Select a ticket to see details, change its status or assign it</p>
         </div>
         <button className="btn btn--primary" onClick={onNewTicket}>New ticket</button>
       </div>
@@ -47,7 +52,7 @@ const Tickets = ({ tickets, loading, onNewTicket }) => {
         <div className="toolbar__search">
           <SearchIcon />
           <input
-            placeholder="Search tickets…"
+            placeholder="Search tickets, requesters or assignees…"
             value={query}
             onChange={(e) => { setQuery(e.target.value); setPage(1) }}
           />
@@ -55,6 +60,7 @@ const Tickets = ({ tickets, loading, onNewTicket }) => {
         <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }}>
           <option value="all">All status</option>
           <option value="open">Open</option>
+          <option value="in_progress">In progress</option>
           <option value="resolved">Resolved</option>
         </select>
         <select value={priority} onChange={(e) => { setPriority(e.target.value); setPage(1) }}>
@@ -92,15 +98,15 @@ const Tickets = ({ tickets, loading, onNewTicket }) => {
           <EmptyState title="No matching tickets" subtitle="Try adjusting your filters or create a new request." />
         )}
         {!loading && paginated.map((ticket) => (
-          <div key={ticket.id} className="row">
+          <button key={ticket.id} className="row row--button" onClick={() => onSelectTicket(ticket.id)}>
             <div className="row__cell row__cell--main">
               <strong>{ticket.title}</strong>
               <span>{ticket.requester} · {ticket.assignee || 'Unassigned'}</span>
             </div>
-            <Badge tone={ticket.status === 'open' ? 'green' : 'gray'} label={ticket.status} />
-            <Badge tone={ticket.priority === 'high' ? 'red' : ticket.priority === 'medium' ? 'amber' : 'blue'} label={ticket.priority} />
-            <span className="row__meta">{ticket.created_at}</span>
-          </div>
+            <Badge tone={STATUS_TONES[ticket.status]} label={STATUS_LABELS[ticket.status]} />
+            <Badge tone={PRIORITY_TONES[ticket.priority]} label={ticket.priority} />
+            <span className="row__meta">{formatDateTime(ticket.created_at)}</span>
+          </button>
         ))}
       </div>
 

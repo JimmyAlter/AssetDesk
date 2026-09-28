@@ -1,15 +1,26 @@
 import { useMemo, useState } from 'react'
+import Badge from './ui/Badge'
 import EmptyState from './ui/EmptyState'
 import { SkeletonRow } from './ui/Skeleton'
 import Pagination from './ui/Pagination'
+import Modal from './Modal'
 import { SearchIcon } from './Icons'
+import { formatDate, initials } from '../format'
+import { ROLES, STATUS_LABELS, STATUS_TONES } from '../permissions'
 
 const PAGE_SIZE = 8
 
-const Users = ({ users, loading }) => {
+const ROLE_SUMMARY = {
+  [ROLES.ADMIN]: 'Full access: every ticket, assignment, reopening and the people directory.',
+  [ROLES.LEAD]: 'Runs the queue: every ticket, assignment, reopening and the people directory.',
+  [ROLES.TECH]: 'Works the tickets assigned to them and can raise new ones.',
+}
+
+const Users = ({ users, tickets, loading }) => {
   const [query, setQuery] = useState('')
   const [role, setRole] = useState('all')
   const [page, setPage] = useState(1)
+  const [selectedId, setSelectedId] = useState(null)
 
   const filtered = useMemo(() => {
     return users.filter((u) => {
@@ -28,6 +39,11 @@ const Users = ({ users, loading }) => {
     query && `Search: ${query}`,
     role !== 'all' && `Role: ${role}`,
   ].filter(Boolean)
+
+  const selected = users.find((u) => u.id === selectedId)
+  const workload = selected
+    ? tickets.filter((t) => t.assignee_id === selected.id && t.status !== 'resolved')
+    : []
 
   return (
     <section className="card view-card">
@@ -49,9 +65,9 @@ const Users = ({ users, loading }) => {
         </div>
         <select value={role} onChange={(e) => { setRole(e.target.value); setPage(1) }}>
           <option value="all">All roles</option>
-          <option value="Admin">Admin</option>
-          <option value="Support Lead">Support Lead</option>
-          <option value="Field Tech">Field Tech</option>
+          {Object.values(ROLES).map((name) => (
+            <option key={name} value={name}>{name}</option>
+          ))}
         </select>
       </div>
 
@@ -84,20 +100,50 @@ const Users = ({ users, loading }) => {
         {!loading && paginated.map((user) => (
           <div key={user.id} className="row">
             <div className="row__cell row__cell--main">
-              <div className="user-avatar">{user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
+              <div className="user-avatar">{initials(user.name)}</div>
               <div>
                 <strong>{user.name}</strong>
                 <span>{user.email}</span>
               </div>
             </div>
             <span className="row__role-tag">{user.role}</span>
-            <span className="row__meta">{user.created_at}</span>
-            <button className="btn btn--ghost btn--sm">View</button>
+            <span className="row__meta">{formatDate(user.created_at)}</span>
+            <button className="btn btn--ghost btn--sm" onClick={() => setSelectedId(user.id)}>View</button>
           </div>
         ))}
       </div>
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+
+      <Modal open={Boolean(selected)} onClose={() => setSelectedId(null)} title="Team member">
+        {selected && (
+          <div className="ticket-detail">
+            <div className="person-head">
+              <div className="user-avatar user-avatar--lg">{initials(selected.name)}</div>
+              <div>
+                <h4 className="ticket-detail__title">{selected.name}</h4>
+                <span className="row__role-tag">{selected.role}</span>
+              </div>
+            </div>
+            <p className="ticket-detail__description">{ROLE_SUMMARY[selected.role]}</p>
+            <dl className="detail-list">
+              <div><dt>Email</dt><dd>{selected.email}</dd></div>
+              <div><dt>Joined</dt><dd>{formatDate(selected.created_at)}</dd></div>
+              <div><dt>Active tickets</dt><dd>{workload.length}</dd></div>
+            </dl>
+            {workload.length > 0 && (
+              <ul className="workload">
+                {workload.map((ticket) => (
+                  <li key={ticket.id}>
+                    <span>{ticket.title}</span>
+                    <Badge tone={STATUS_TONES[ticket.status]} label={STATUS_LABELS[ticket.status]} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </Modal>
     </section>
   )
 }

@@ -1,13 +1,26 @@
 import { useState } from 'react'
-import { LogoIcon, ShieldIcon, ActivityIcon } from './Icons'
+import { LogoIcon, ShieldIcon, TicketIcon, UsersIcon } from './Icons'
+
+// Demo accounts created by the backend seed. They all share one password.
+const DEMO_PASSWORD = 'demo123'
+const DEMO_ACCOUNTS = [
+  { role: 'Admin', email: 'demo@assetdesk.dev', blurb: 'Everything, including the people directory' },
+  { role: 'Support Lead', email: 'lead@assetdesk.dev', blurb: 'Triage, assign and reopen tickets' },
+  { role: 'Field Tech', email: 'field@assetdesk.dev', blurb: 'Only tickets assigned to them' },
+]
 
 const Login = ({ onLogin, busy, error }) => {
-  const [email, setEmail] = useState('demo@assetdesk.dev')
-  const [password, setPassword] = useState('demo123')
+  const [email, setEmail] = useState(DEMO_ACCOUNTS[0].email)
+  const [password, setPassword] = useState(DEMO_PASSWORD)
 
   const handleSubmit = (event) => {
     event.preventDefault()
     onLogin(email, password)
+  }
+
+  const pickAccount = (account) => {
+    setEmail(account.email)
+    setPassword(DEMO_PASSWORD)
   }
 
   return (
@@ -23,36 +36,15 @@ const Login = ({ onLogin, busy, error }) => {
             <LogoIcon />
             <span>AssetDesk</span>
           </div>
-          <h1>Enterprise IT operations, unified.</h1>
+          <h1>IT service desk and asset inventory.</h1>
           <p className="login-hero__sub">
-            Govern inventory, service delivery, and field execution from a secure, unified platform.
+            Raise tickets, move them from open to resolved, assign them to the right person and keep an eye on device health.
           </p>
-          <div className="login-grid">
-            <div className="login-grid__item">
-              <span>Assets monitored</span>
-              <strong>148</strong>
-            </div>
-            <div className="login-grid__item">
-              <span>Open tickets</span>
-              <strong>12</strong>
-            </div>
-            <div className="login-grid__item">
-              <span>Weekly closures</span>
-              <strong>42</strong>
-            </div>
-            <div className="login-grid__item">
-              <span>SLA compliance</span>
-              <strong>97%</strong>
-            </div>
-          </div>
-          <div className="login-activity">
-            <p className="login-activity__head"><ActivityIcon /> Latest activity</p>
-            <ul>
-              <li>Change window approved for core systems</li>
-              <li>Endpoint policy synced across offices</li>
-              <li>Ticket queue cleared for priority items</li>
-            </ul>
-          </div>
+          <ul className="login-features">
+            <li><TicketIcon /> Ticket lifecycle: open, in progress, resolved, reopen</li>
+            <li><UsersIcon /> Three roles with different permissions, enforced by the API</li>
+            <li><ShieldIcon /> JWT sessions, bcrypt passwords, rate-limited sign-in</li>
+          </ul>
         </div>
       </div>
       <div className="login-panel login-panel--form">
@@ -60,7 +52,7 @@ const Login = ({ onLogin, busy, error }) => {
           <div className="login-form__header">
             <ShieldIcon />
             <h2>Sign in to your workspace</h2>
-            <p>Enter your credentials to access the operations console.</p>
+            <p>Pick a demo role below, or type the credentials yourself.</p>
           </div>
           <form className="login-form" onSubmit={handleSubmit}>
             <label>
@@ -70,6 +62,7 @@ const Login = ({ onLogin, busy, error }) => {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@company.com"
+                autoComplete="username"
                 required
               />
             </label>
@@ -80,16 +73,32 @@ const Login = ({ onLogin, busy, error }) => {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="••••••••"
+                autoComplete="current-password"
                 required
               />
             </label>
-            {error && <p className="form-error">{error}</p>}
+            {error && <p className="form-error" role="alert">{error}</p>}
             <button type="submit" className="login-btn" disabled={busy}>
               {busy ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
+          <div className="demo-accounts">
+            <p className="demo-accounts__label">Demo accounts · password <strong>{DEMO_PASSWORD}</strong></p>
+            {DEMO_ACCOUNTS.map((account) => (
+              <button
+                key={account.email}
+                type="button"
+                className={email === account.email ? 'demo-account demo-account--active' : 'demo-account'}
+                onClick={() => pickAccount(account)}
+              >
+                <strong>{account.role}</strong>
+                <span>{account.email}</span>
+                <small>{account.blurb}</small>
+              </button>
+            ))}
+          </div>
           <p className="login-foot">
-            Demo access: <strong>demo@assetdesk.dev</strong> / <strong>demo123</strong>
+            The API runs on a free tier and sleeps when idle, so the first sign-in can take up to a minute.
           </p>
         </div>
       </div>

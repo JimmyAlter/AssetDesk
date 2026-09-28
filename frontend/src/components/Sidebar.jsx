@@ -1,54 +1,49 @@
-import { useMemo } from 'react'
 import { LogoutIcon, LogoIcon } from './Icons'
-import { navItems } from './navItems'
+import { initials } from '../format'
 
-const Sidebar = ({ view, onNavigate, onLogout }) => {
-  const items = useMemo(() => navItems, [])
+const Sidebar = ({ items, view, user, onNavigate, onLogout }) => (
+  <aside className="sidebar">
+    <div className="brand">
+      <div className="brand-mark">
+        <LogoIcon />
+      </div>
+      <div className="brand-text">
+        <h2>AssetDesk</h2>
+        <span>IT Operations Hub</span>
+      </div>
+    </div>
 
-  return (
-    <aside className="sidebar">
-      <div className="brand">
-        <div className="brand-mark">
-          <LogoIcon />
-        </div>
-        <div className="brand-text">
-          <h2>AssetDesk</h2>
-          <span>IT Operations Hub</span>
+    <nav className="nav">
+      <p className="nav-label">Navigation</p>
+      {items.map((item) => {
+        const Icon = item.icon
+        return (
+          <button
+            key={item.id}
+            className={view === item.id ? 'nav-item nav-item--active' : 'nav-item'}
+            onClick={() => onNavigate(item.id)}
+          >
+            <Icon />
+            <span>{item.label}</span>
+          </button>
+        )
+      })}
+    </nav>
+
+    <div className="sidebar-foot">
+      <div className="sidebar-foot__user">
+        <div className="sidebar-avatar">{initials(user?.name)}</div>
+        <div>
+          <p className="sidebar-foot__name">{user?.name}</p>
+          <p className="sidebar-foot__role">{user?.role}</p>
         </div>
       </div>
-
-      <nav className="nav">
-        <p className="nav-label">Navigation</p>
-        {items.map((item) => {
-          const Icon = item.icon
-          return (
-            <button
-              key={item.id}
-              className={view === item.id ? 'nav-item nav-item--active' : 'nav-item'}
-              onClick={() => onNavigate(item.id)}
-            >
-              <Icon />
-              <span>{item.label}</span>
-            </button>
-          )
-        })}
-      </nav>
-
-      <div className="sidebar-foot">
-        <div className="sidebar-foot__user">
-          <div className="sidebar-avatar">IT</div>
-          <div>
-            <p className="sidebar-foot__name">IT Operations</p>
-            <p className="sidebar-foot__role">Administrator</p>
-          </div>
-        </div>
-        <button className="sidebar-logout" onClick={onLogout}>
-          <LogoutIcon />
-          <span>Sign out</span>
-        </button>
-      </div>
-    </aside>
-  )
-}
+      <button className="sidebar-logout" onClick={onLogout}>
+        <LogoutIcon />
+        <span>Sign out</span>
+      </button>
+    </div>
+  </aside>
+)
 
 export default Sidebar

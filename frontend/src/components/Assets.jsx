@@ -4,6 +4,7 @@ import EmptyState from './ui/EmptyState'
 import { SkeletonRow } from './ui/Skeleton'
 import Pagination from './ui/Pagination'
 import { SearchIcon } from './Icons'
+import { formatDateTime } from '../format'
 
 const PAGE_SIZE = 8
 
@@ -93,7 +94,7 @@ const Assets = ({ assets, loading }) => {
             </div>
             <span className="row__meta">{asset.location}</span>
             <Badge tone={asset.status === 'healthy' ? 'green' : asset.status === 'warning' ? 'amber' : 'red'} label={asset.status} />
-            <span className="row__meta">{asset.last_seen}</span>
+            <span className="row__meta">{formatDateTime(asset.last_seen)}</span>
           </div>
         ))}
       </div>

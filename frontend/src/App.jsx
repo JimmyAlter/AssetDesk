@@ -1,34 +1,40 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Login from './components/Login'
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import Tickets from './components/Tickets'
+import TicketDetail from './components/TicketDetail'
 import Assets from './components/Assets'
 import Users from './components/Users'
 import Modal from './components/Modal'
 import { navItems } from './components/navItems'
 import { PlusIcon } from './components/Icons'
-import { isDemoMode, mockFetchJson } from './mockApi'
+import { apiFetch } from './api'
+import { isManager } from './permissions'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+const SESSION_KEY = 'assetdesk-session'
+const EMPTY_TICKET = { title: '', priority: 'medium', description: '' }
 
-const fetchJson = async (path, options = {}) => {
-  if (isDemoMode()) {
-    return mockFetchJson(path, options)
+const loadSession = () => {
+  try {
+    const session = JSON.parse(localStorage.getItem(SESSION_KEY))
+    return session?.token && session?.user ? session : null
+  } catch {
+    return null
   }
-  const response = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  })
-  if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message || 'Request failed')
+}
+
+const saveSession = (session) => {
+  try {
+    if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+    else localStorage.removeItem(SESSION_KEY)
+  } catch {
+    // Storage can be unavailable (private mode); the session then lasts until reload.
   }
-  return response.json()
 }
 
 function App() {
-  const [token, setToken] = useState(() => localStorage.getItem('assetdesk-token'))
+  const [session, setSession] = useState(loadSession)
   const [view, setView] = useState('dashboard')
   const [summary, setSummary] = useState(null)
   const [tickets, setTickets] = useState([])
@@ -36,143 +42,192 @@ function App() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [formOpen, setFormOpen] = useState(false)
-  const [newTicket, setNewTicket] = useState({ title: '', priority: 'medium', description: '' })
+  const [formError, setFormError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [newTicket, setNewTicket] = useState(EMPTY_TICKET)
+  const [selectedTicketId, setSelectedTicketId] = useState(null)
+
+  const token = session?.token
+  const user = session?.user
+
+  const logout = useCallback((message = '') => {
+    saveSession(null)
+    setSession(null)
+    setNotice(message)
+    setView('dashboard')
+    setSummary(null)
+    setTickets([])
+    setAssets([])
+    setUsers([])
+    setError('')
+    setFormOpen(false)
+    setSelectedTicketId(null)
+  }, [])
+
+  // Authenticated request. A 401 means the token expired or was revoked, so
+  // the user goes back to the sign-in screen with an explanation.
+  const request = useCallback(async (path, options = {}) => {
+    try {
+      return await apiFetch(path, { token, ...options })
+    } catch (err) {
+      if (err.status === 401) logout('Your session has expired. Please sign in again.')
+      throw err
+    }
+  }, [token, logout])
 
   useEffect(() => {
     if (!token) return
+    let cancelled = false
     const load = async () => {
       try {
         setLoading(true)
         setError('')
-        const headers = { Authorization: `Bearer ${token}` }
+        const me = await request('/api/me')
         const [summaryData, ticketData, assetData, userData] = await Promise.all([
-          fetchJson('/api/summary', { headers }),
-          fetchJson('/api/tickets', { headers }),
-          fetchJson('/api/assets', { headers }),
-          fetchJson('/api/users', { headers }),
+          request('/api/summary'),
+          request('/api/tickets'),
+          request('/api/assets'),
+          isManager(me) ? request('/api/users') : Promise.resolve([]),
         ])
+        if (cancelled) return
+        setSession((prev) => {
+          const next = { ...prev, user: me }
+          saveSession(next)
+          return next
+        })
         setSummary(summaryData)
         setTickets(ticketData)
         setAssets(assetData)
         setUsers(userData)
       } catch (err) {
-        setError(err.message || 'Unable to load data')
+        if (!cancelled && err.status !== 401) setError(err.message)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
-  }, [token])
+    return () => { cancelled = true }
+  }, [token, request])
+
+  const refreshSummary = async () => {
+    try {
+      setSummary(await request('/api/summary'))
+    } catch {
+      // The counters catch up on the next load.
+    }
+  }
 
   const handleLogin = async (email, password) => {
     try {
       setLoading(true)
-      setError('')
-      const data = await fetchJson('/api/auth/login', {
+      setNotice('')
+      const data = await apiFetch('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       })
-      localStorage.setItem('assetdesk-token', data.token)
-      setToken(data.token)
-    } catch {
-      setError('Invalid credentials. Try the demo access.')
+      saveSession(data)
+      setSession(data)
+    } catch (err) {
+      setNotice(err.status === 401 ? 'Invalid email or password.' : err.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('assetdesk-token')
-    setToken(null)
+  const openTicketForm = () => {
+    setFormError('')
+    setFormOpen(true)
   }
 
   const handleTicketSubmit = async (event) => {
     event.preventDefault()
     try {
-      setLoading(true)
-      const data = await fetchJson('/api/tickets', {
+      setSubmitting(true)
+      setFormError('')
+      const data = await request('/api/tickets', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify(newTicket),
       })
       setTickets((prev) => [data, ...prev])
-      setNewTicket({ title: '', priority: 'medium', description: '' })
+      setNewTicket(EMPTY_TICKET)
       setFormOpen(false)
-    } catch {
-      setError('Unable to create ticket right now.')
+      refreshSummary()
+    } catch (err) {
+      setFormError(err.message)
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
-  if (!token) {
-    return <Login onLogin={handleLogin} busy={loading} error={error} />
+  const handleTicketUpdate = async (id, changes) => {
+    const updated = await request(`/api/tickets/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(changes),
+    })
+    setTickets((prev) => prev.map((ticket) => (ticket.id === id ? updated : ticket)))
+    refreshSummary()
+    return updated
   }
 
-  const currentLabel = navItems.find((item) => item.id === view)?.label || 'Overview'
+  if (!token) {
+    return <Login onLogin={handleLogin} busy={loading} error={notice} />
+  }
+
+  const visibleNav = navItems.filter((item) => !item.managersOnly || isManager(user))
+  const currentView = visibleNav.some((item) => item.id === view) ? view : 'dashboard'
+  const currentLabel = visibleNav.find((item) => item.id === currentView)?.label || 'Overview'
+  const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId)
 
   return (
     <div className="shell">
-      <Sidebar view={view} onNavigate={setView} onLogout={handleLogout} />
+      <Sidebar items={visibleNav} view={currentView} user={user} onNavigate={setView} onLogout={() => logout()} />
 
       <main className="main">
         <header className="topbar">
           <div className="topbar__left">
-            <p className="eyebrow">Workspace / Enterprise Operations</p>
+            <p className="eyebrow">Workspace / IT Operations</p>
             <h1>{currentLabel}</h1>
-            <p className="topbar__sub">Maintain service continuity, asset health, and distributed coverage.</p>
+            <p className="topbar__sub">
+              {isManager(user)
+                ? 'Triage the queue, assign work and keep an eye on device health.'
+                : 'Tickets assigned to you or raised by you, plus the asset inventory.'}
+            </p>
           </div>
           <div className="topbar__right">
-            {isDemoMode() ? (
-              <div className="status-chip status-chip--demo" style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#f59e0b' }}>
-                <span className="status-chip__dot" style={{ backgroundColor: '#f59e0b' }} />
-                Demo Mode (Local)
-              </div>
-            ) : (
-              <div className="status-chip status-chip--live" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', color: '#10b981' }}>
-                <span className="status-chip__dot" style={{ backgroundColor: '#10b981' }} />
-                Live Mode (Render API)
-              </div>
-            )}
-            <button className="btn btn--primary" onClick={() => setFormOpen(true)}>
+            <button className="btn btn--primary" onClick={openTicketForm}>
               <PlusIcon /> New ticket
             </button>
           </div>
-
         </header>
 
-        {isDemoMode() && (
-          <div className="banner banner--info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: '#3b82f6', borderRadius: '6px', marginBottom: '16px' }}>
-            <span style={{ fontSize: '14px' }}>
-              🌐 <strong>Demo Mode:</strong> Running entirely client-side using LocalStorage database. Any additions/modifications will persist locally in your browser.
-            </span>
-            <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#3b82f6' }} onClick={() => { localStorage.clear(); window.location.reload(); }}>
-              Reset Data
-            </button>
-          </div>
-        )}
+        {error && <div className="banner banner--error" role="alert">{error}</div>}
 
-        {error && <div className="banner banner--error">{error}</div>}
-
-        {view === 'dashboard' && (
+        {currentView === 'dashboard' && (
           <Dashboard
             summary={summary}
             tickets={tickets}
             assets={assets}
             loading={loading}
             onViewAll={setView}
-            onNewTicket={() => setFormOpen(true)}
+            onNewTicket={openTicketForm}
+            onSelectTicket={setSelectedTicketId}
           />
         )}
-        {view === 'tickets' && (
-          <Tickets tickets={tickets} loading={loading} onNewTicket={() => setFormOpen(true)} />
+        {currentView === 'tickets' && (
+          <Tickets
+            tickets={tickets}
+            loading={loading}
+            onNewTicket={openTicketForm}
+            onSelectTicket={setSelectedTicketId}
+          />
         )}
-        {view === 'assets' && (
+        {currentView === 'assets' && (
           <Assets assets={assets} loading={loading} />
         )}
-        {view === 'users' && (
-          <Users users={users} loading={loading} />
+        {currentView === 'users' && (
+          <Users users={users} tickets={tickets} loading={loading} />
         )}
       </main>
 
@@ -184,6 +239,7 @@ function App() {
               value={newTicket.title}
               onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
               placeholder="Brief summary of the issue"
+              maxLength={200}
               required
             />
           </label>
@@ -205,10 +261,26 @@ function App() {
               value={newTicket.description}
               onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
               placeholder="Detailed description of the request…"
+              maxLength={5000}
             />
           </label>
-          <button className="btn btn--primary btn--full" type="submit">Create ticket</button>
+          {formError && <p className="form-error" role="alert">{formError}</p>}
+          <button className="btn btn--primary btn--full" type="submit" disabled={submitting}>
+            {submitting ? 'Creating…' : 'Create ticket'}
+          </button>
         </form>
+      </Modal>
+
+      <Modal open={Boolean(selectedTicket)} onClose={() => setSelectedTicketId(null)} title="Ticket details">
+        {selectedTicket && (
+          <TicketDetail
+            key={selectedTicket.id}
+            ticket={selectedTicket}
+            user={user}
+            users={users}
+            onUpdate={handleTicketUpdate}
+          />
+        )}
       </Modal>
     </div>
   )
