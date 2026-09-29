@@ -9,7 +9,7 @@ import { STATUS_LABELS, STATUS_TONES, PRIORITY_TONES } from '../permissions'
 
 const PAGE_SIZE = 8
 
-const Tickets = ({ tickets, loading, onNewTicket, onSelectTicket }) => {
+const Tickets = ({ tickets, loading, onSelectTicket }) => {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [priority, setPriority] = useState('all')
@@ -45,7 +45,6 @@ const Tickets = ({ tickets, loading, onNewTicket, onSelectTicket }) => {
           <h3>Service requests</h3>
           <p>Select a ticket to see details, change its status or assign it</p>
         </div>
-        <button className="btn btn--primary" onClick={onNewTicket}>New ticket</button>
       </div>
 
       <div className="toolbar">

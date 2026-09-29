@@ -220,7 +220,6 @@ function App() {
           <Tickets
             tickets={tickets}
             loading={loading}
-            onNewTicket={openTicketForm}
             onSelectTicket={setSelectedTicketId}
           />
         )}
