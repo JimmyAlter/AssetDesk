@@ -1,5 +1,6 @@
 import { LogoutIcon, LogoIcon } from './Icons'
 import { initials } from '../format'
+import { SHORT_ROLE_LABELS } from '../permissions'
 
 const Sidebar = ({ items, view, user, onNavigate, onLogout }) => (
   <aside className="sidebar">
@@ -36,7 +37,10 @@ const Sidebar = ({ items, view, user, onNavigate, onLogout }) => (
     {/* Compact user chip and sign-out for narrow screens, where the footer is hidden. */}
     <div className="sidebar-compact">
       <div className="sidebar-avatar" title={`${user?.name} · ${user?.role}`}>{initials(user?.name)}</div>
-      <span className="sidebar-compact__role">{user?.role}</span>
+      <span className="sidebar-compact__role" title={user?.role}>
+        <span className="sidebar-compact__role-full">{user?.role}</span>
+        <span className="sidebar-compact__role-short">{SHORT_ROLE_LABELS[user?.role] || user?.role}</span>
+      </span>
       <button className="sidebar-compact__logout" onClick={onLogout} aria-label="Sign out" title="Sign out">
         <LogoutIcon aria-hidden="true" />
       </button>

@@ -6,6 +6,13 @@ export const ROLES = {
   TECH: 'Field Tech',
 }
 
+// Short labels for the role pill on narrow screens.
+export const SHORT_ROLE_LABELS = {
+  [ROLES.ADMIN]: 'Admin',
+  [ROLES.LEAD]: 'Lead',
+  [ROLES.TECH]: 'Tech',
+}
+
 export const isManager = (user) => user?.role === ROLES.ADMIN || user?.role === ROLES.LEAD
 
 export const STATUS_LABELS = {

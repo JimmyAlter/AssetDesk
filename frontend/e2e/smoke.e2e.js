@@ -52,7 +52,17 @@ test('on a phone the user can see their role and sign out', async ({ page }) => 
   const tops = await page.locator('.nav-item').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top))
   expect(new Set(tops).size).toBe(1)
 
-  await expect(page.locator('.sidebar-compact .sidebar-avatar')).toHaveAttribute('title', 'Service Desk Lead · Support Lead')
+  // The role is visible as text, not only in a tooltip.
+  const rolePill = page.locator('.sidebar-compact__role')
+  await expect(rolePill).toBeVisible()
+  expect(await rolePill.innerText()).toBe('Lead')
+  await expect(page.locator('.sidebar-compact .sidebar-avatar')).toHaveText('SD')
+
+  // On a tablet the full role name fits.
+  await page.setViewportSize({ width: 768, height: 1024 })
+  expect(await rolePill.innerText()).toBe('Support Lead')
+  await page.setViewportSize({ width: 375, height: 812 })
+
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
 })
