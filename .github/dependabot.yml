@@ -5,8 +5,16 @@ updates:
     schedule:
       interval: weekly
     groups:
+      # Minor and patch updates arrive as one PR; majors get their own.
       backend-minor:
         update-types: [minor, patch]
+    ignore:
+      # Express 5 changes routing and error handling; migrate deliberately.
+      - dependency-name: express
+        update-types: [version-update:semver-major]
+      # bcryptjs 3 changes the module format and default hash prefix.
+      - dependency-name: bcryptjs
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: npm
     directory: /frontend
@@ -15,8 +23,21 @@ updates:
     groups:
       frontend-minor:
         update-types: [minor, patch]
+      # ESLint and its plugins have to move together (peer ranges).
+      eslint-major:
+        patterns: [eslint, "@eslint/*", "eslint-plugin-*", globals]
+        update-types: [major]
+    ignore:
+      # React majors need a manual migration.
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
