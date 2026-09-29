@@ -11,6 +11,7 @@ import { navItems } from './components/navItems'
 import { PlusIcon } from './components/Icons'
 import { apiFetch } from './api'
 import { isManager } from './permissions'
+import { mergeTickets } from './tickets'
 
 const SESSION_KEY = 'assetdesk-session'
 const EMPTY_TICKET = { title: '', priority: 'medium', description: '' }
@@ -98,7 +99,7 @@ function App() {
           return next
         })
         setSummary(summaryData)
-        setTickets(ticketData)
+        setTickets((prev) => mergeTickets(ticketData, prev))
         setAssets(assetData)
         setUsers(userData)
       } catch (err) {
