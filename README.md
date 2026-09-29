@@ -137,7 +137,7 @@ The Vitest suites cover the API client (including a regression test for the head
 
 The Playwright smoke tests start the real API on a throwaway database and the Vite dev server, then check in Chromium: creating, assigning and resolving a ticket as Admin; that a Field Tech sees only their tickets and no people directory; and that at 375px the nav fits on one row, the role is visible and Sign out works.
 
-GitHub Actions runs the backend tests on Node 22 and 24, the frontend lint, unit tests and build, and the Playwright suite on every push and pull request. Dependabot checks npm and Actions dependencies weekly, grouping minor and patch updates; majors that need a manual migration (Express, bcryptjs, React) are ignored.
+GitHub Actions runs the backend tests on Node 22 and 24 (Linux) and Node 22 (Windows), the frontend lint, unit tests and build, and the Playwright suite on every push and pull request. Dependabot checks npm and Actions dependencies weekly, grouping minor and patch updates; majors that need a manual migration (Express, bcryptjs, React) are ignored, and better-sqlite3 stays on 12.x because 13 has no prebuilt Windows binary. A Windows job checks that the backend installs without build tools.
 
 ## Security notes
 
