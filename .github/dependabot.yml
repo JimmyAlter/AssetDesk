@@ -15,6 +15,10 @@ updates:
       # bcryptjs 3 changes the module format and default hash prefix.
       - dependency-name: bcryptjs
         update-types: [version-update:semver-major]
+      # better-sqlite3 13 has no prebuilt Windows binary for our Node versions,
+      # so `npm ci` needs Python and C++ build tools. Stay on 12.x.
+      - dependency-name: better-sqlite3
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: npm
     directory: /frontend

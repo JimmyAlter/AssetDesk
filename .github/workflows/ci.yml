@@ -27,6 +27,30 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  # Make sure the backend installs from the lockfile on Windows without
+  # Python or Visual Studio Build Tools (better-sqlite3 must use a prebuilt binary).
+  backend-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      # The runner has build tools installed, so also check that the prebuilt
+      # binary was used: a node-gyp build leaves build/config.gypi behind.
+      - name: Check better-sqlite3 used a prebuilt binary
+        shell: bash
+        run: |
+          test -f node_modules/better-sqlite3/build/Release/better_sqlite3.node
+          test ! -e node_modules/better-sqlite3/build/config.gypi
+      - run: npm test
+
   frontend:
     runs-on: ubuntu-latest
     defaults:
