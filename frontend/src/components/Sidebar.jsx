@@ -22,13 +22,25 @@ const Sidebar = ({ items, view, user, onNavigate, onLogout }) => (
             key={item.id}
             className={view === item.id ? 'nav-item nav-item--active' : 'nav-item'}
             onClick={() => onNavigate(item.id)}
+            aria-label={item.label}
+            aria-current={view === item.id ? 'page' : undefined}
+            title={item.label}
           >
-            <Icon />
+            <Icon aria-hidden="true" />
             <span>{item.label}</span>
           </button>
         )
       })}
     </nav>
+
+    {/* Compact user chip and sign-out for narrow screens, where the footer is hidden. */}
+    <div className="sidebar-compact">
+      <div className="sidebar-avatar" title={`${user?.name} · ${user?.role}`}>{initials(user?.name)}</div>
+      <span className="sidebar-compact__role">{user?.role}</span>
+      <button className="sidebar-compact__logout" onClick={onLogout} aria-label="Sign out" title="Sign out">
+        <LogoutIcon aria-hidden="true" />
+      </button>
+    </div>
 
     <div className="sidebar-foot">
       <div className="sidebar-foot__user">

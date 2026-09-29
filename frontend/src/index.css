@@ -225,6 +225,34 @@ a { color: inherit; text-decoration: none; }
   transition: all var(--transition);
 }
 
+/* Shown instead of .sidebar-foot on narrow screens (see media queries). */
+.sidebar-compact {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sidebar-compact__role {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.sidebar-compact__logout {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.sidebar-compact__logout:hover,
 .sidebar-logout:hover {
   border-color: rgba(248, 113, 113, 0.3);
   color: var(--danger);
@@ -1477,11 +1505,12 @@ a { color: inherit; text-decoration: none; }
     padding: 14px 20px;
   }
 
-  .nav { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .nav { flex-direction: row; flex-wrap: nowrap; gap: 4px; }
   .nav-label { display: none; }
   .nav-item span { display: none; }
   .nav-item { padding: 8px 10px; }
   .sidebar-foot { display: none; }
+  .sidebar-compact { display: flex; }
   .brand-text span { display: none; }
 
   .main { padding: 24px 20px 40px; }
@@ -1516,6 +1545,11 @@ a { color: inherit; text-decoration: none; }
   .topbar h1 { font-size: 22px; }
   .view-card { padding: 18px; }
   .login-form__wrap { padding: 0 8px; }
+  .sidebar { padding: 10px 12px; gap: 8px; }
+  .brand { padding: 0; }
+  .brand-text { display: none; }
+  .nav-item { padding: 8px; }
+  .sidebar-compact__role { display: none; }
 }
 
 /* ===================================================================
