@@ -77,6 +77,7 @@ frontend/
   src/api.js       fetch wrapper (auth header, error messages)
   src/permissions.js  UI mirror of the role rules
   src/components/  Dashboard, Tickets, TicketDetail, Assets, Users, Login
+  e2e/             Playwright smoke tests (real API + app)
 ```
 
 Tickets store `requester_id` and `assignee_id` as user ids. Databases created by earlier versions (names stored as text) are migrated in place on startup.
@@ -99,7 +100,7 @@ All routes except health and login need `Authorization: Bearer <token>`. Errors 
 
 ## Running it locally
 
-Requires Node.js 20 or later.
+Requires Node.js 22 or later.
 
 ```bash
 cd backend
@@ -118,7 +119,8 @@ The frontend calls `VITE_API_URL`, defaulting to `http://localhost:4000`. Backen
 
 ```bash
 cd backend && npm test      # 38 node:test cases against a throwaway SQLite file
-cd frontend && npm test     # 9 Vitest cases
+cd frontend && npm test     # 13 Vitest cases
+cd frontend && npx playwright install chromium && npm run test:e2e   # 3 Playwright tests; starts the API and the app itself
 ```
 
 The backend suites cover:
@@ -131,9 +133,11 @@ The backend suites cover:
 - per-client rate limiting behind a trusted proxy, and that `X-Forwarded-For` is ignored without one
 - migration of databases created with the old schema
 
-The frontend tests cover the API client (including a regression test for the header merge bug that broke ticket creation) and the permission helpers.
+The Vitest suites cover the API client (including a regression test for the header merge bug that broke ticket creation), the permission helpers and the ticket-list merge used while data is loading.
 
-GitHub Actions runs the backend tests on Node 20 and 22, and the frontend lint, tests and build, on every push and pull request. Dependabot checks npm and Actions dependencies weekly.
+The Playwright smoke tests start the real API on a throwaway database and the Vite dev server, then check in Chromium: creating, assigning and resolving a ticket as Admin; that a Field Tech sees only their tickets and no people directory; and that at 375px the nav fits on one row, the role is visible and Sign out works.
+
+GitHub Actions runs the backend tests on Node 22 and 24, the frontend lint, unit tests and build, and the Playwright suite on every push and pull request. Dependabot checks npm and Actions dependencies weekly, grouping minor and patch updates; majors that need a manual migration (Express, bcryptjs, React) are ignored.
 
 ## Security notes
 
@@ -158,7 +162,6 @@ See [SECURITY.md](SECURITY.md) for how to report a vulnerability.
 - No ticket comments, status history or audit trail.
 - The JWT lives in `localStorage`, and there is no refresh token or server-side revocation list (a deleted user's token stops working because the user is looked up on every request).
 - The rate limiter's store is in memory, so limits reset on restart and are not shared between instances.
-- No end-to-end tests in CI; the UI flows were checked manually with Playwright against a local build.
 
 ## License
 
